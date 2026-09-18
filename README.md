@@ -3,6 +3,7 @@
 FastAPI service for the BUP CSE Fest 2026 Smart Campus Energy Optimization preliminary. It interprets operator notes with an LLM and returns a minimum-cost, valid 24-hour energy schedule.
 
 - API: `https://gridwise-llm.vercel.app`
+  - Interactive docs: `https://gridwise-llm.vercel.app/docs`
 - Source: `https://github.com/tanvir-gellar-DU/BUP_Preli`
 - Docker: `ghcr.io/tanvir-gellar-du/bup_preli:latest`
 
