@@ -30,8 +30,14 @@ def health() -> HealthResponse:
 
 
 def get_optimization_service(request: Request) -> OptimizationService:
-    http_client: httpx.AsyncClient | None = getattr(request.app.state, "http_client", None)
-    provider = OpenRouterClient(get_settings(), http_client=http_client)
+    provider: OpenRouterClient | None = getattr(
+        request.app.state, "openrouter_client", None
+    )
+    if provider is None:
+        http_client: httpx.AsyncClient | None = getattr(
+            request.app.state, "http_client", None
+        )
+        provider = OpenRouterClient(get_settings(), http_client=http_client)
     return OptimizationService(DirectiveInterpreter(provider))
 
 

@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.routes import router
 from app.config import get_settings
+from app.llm.openrouter_client import OpenRouterClient
 
 
 def create_app() -> FastAPI:
@@ -18,6 +19,9 @@ def create_app() -> FastAPI:
     async def lifespan(application: FastAPI):
         timeout = get_settings().openrouter_timeout_seconds
         application.state.http_client = httpx.AsyncClient(timeout=httpx.Timeout(timeout))
+        application.state.openrouter_client = OpenRouterClient(
+            get_settings(), http_client=application.state.http_client
+        )
         try:
             yield
         finally:

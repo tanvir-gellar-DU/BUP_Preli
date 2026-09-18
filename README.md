@@ -37,9 +37,15 @@ Set these values in `.env`:
 
 ```env
 OPENROUTER_API_KEY=sk-or-v1-...
+OPENROUTER_API_KEYS='["sk-or-v1-...","sk-or-v1-..."]'
 OPENROUTER_MODEL=deepseek/deepseek-v4-flash-0731
+OPENROUTER_FALLBACK_MODEL=openai/gpt-5-nano
 OPENROUTER_TIMEOUT_SECONDS=15
 ```
+
+Configure either `OPENROUTER_API_KEY` or the optional JSON `OPENROUTER_API_KEYS` pool. With a pool, requests start round-robin and move to the next key immediately only after HTTP 429; each key is attempted at most once. Keep all keys secret and use them only in accordance with the provider's account and rate-limit policies.
+
+DeepSeek V4 Flash is the primary interpreter. If and only if it returns empty, invalid JSON, schema-invalid, or guardrail-invalid structured output, the interpreter makes one bounded retry with GPT-5 Nano. Authentication, quota, timeout, rate-limit exhaustion, and provider HTTP failures remain controlled errors and do not trigger model fallback.
 
 Never commit `.env` or put credentials in source, Docker images, `vercel.json`, logs, or API responses.
 
@@ -112,7 +118,7 @@ Verify `http://localhost:8000/health`. Replace `gridwise:local` with the final s
 
 Production base URL: `https://gridwise-llm.vercel.app`
 
-Vercel's native FastAPI adapter deploys the same application used locally and in Docker. The production project stores `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_TIMEOUT_SECONDS` as encrypted environment variables. On September 18, 2026, external checks returned HTTP 200 from both `/health` and `/optimize-energy`; the latter returned a complete 24-hour schedule for public Sample 1.
+Vercel's native FastAPI adapter deploys the same application used locally and in Docker. The production project stores `OPENROUTER_API_KEY` or `OPENROUTER_API_KEYS`, plus `OPENROUTER_MODEL` and `OPENROUTER_TIMEOUT_SECONDS`, as encrypted environment variables. On September 18, 2026, external checks returned HTTP 200 from both `/health` and `/optimize-energy`; the latter returned a complete 24-hour schedule for public Sample 1.
 
 To deploy a separately owned copy, link the repository with Vercel, configure those three production variables, and run `vercel deploy --prod` from the repository root.
 
