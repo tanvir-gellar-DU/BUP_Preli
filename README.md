@@ -86,6 +86,16 @@ The response must contain the same `scenario_id`, one `directive_interpretation`
 }
 ```
 
+## Tests
+
+Tests mock OpenRouter and do not consume API quota.
+
+```bash
+pytest -q
+pytest tests/test_public_cases.py -q
+```
+
+The full suite contains 90 tests, including all ten organizer public cases.
 
 ## Docker fallback
 
@@ -121,4 +131,3 @@ All runtime and test dependencies are declared in `requirements.txt`. The main l
 - Optimization requests require OpenRouter network access, valid credentials, model availability, and sufficient quota.
 - Latency depends on OpenRouter and the selected model.
 - Unknown request fields are rejected to preserve the exact API contract.
-
