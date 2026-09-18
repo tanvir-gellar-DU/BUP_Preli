@@ -99,12 +99,6 @@ curl --fail http://localhost:8000/health
 docker stop gridwise
 ```
 
-Immutable image reference:
-
-```text
-ghcr.io/tanvir-gellar-du/bup_preli@sha256:7d9f9014d15da98ae8864d5b4bdd40a1ad1a4e1ec6444e8127cd3d0fea477c46
-```
-
 Build the same service locally if needed:
 
 ```bash
