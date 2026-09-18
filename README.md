@@ -1,59 +1,60 @@
 # GridWise LLM
 
-GridWise LLM is a FastAPI service for the BUP CSE Fest 2026 Smart Campus Energy Optimization preliminary. It interprets 1–3 natural-language operator notes with OpenRouter, validates the resulting directives, and computes a valid minimum-cost 24-hour grid/solar/battery schedule with PuLP and CBC.
+FastAPI service for the BUP CSE Fest 2026 Smart Campus Energy Optimization preliminary. It interprets operator notes with an LLM and returns a minimum-cost, valid 24-hour energy schedule.
+
+- API: `https://gridwise-llm.vercel.app`
+- Source: `https://github.com/tanvir-gellar-DU/BUP_Preli`
+- Docker: `ghcr.io/tanvir-gellar-du/bup_preli:latest`
 
 ## Architecture
 
 ```text
-HTTP request → Pydantic validation → OpenRouter semantic extraction
-→ typed directive guardrails → deterministic directive application
-→ PuLP/CBC optimization → independent schedule replay
-→ aggregate recalculation → exact JSON response
+Request validation
+→ OpenRouter interpretation
+→ deterministic directive guardrails and application
+→ PuLP/CBC optimization
+→ independent schedule validation
+→ recalculated totals and JSON response
 ```
 
-The LLM only performs semantic extraction. It does not optimize, validate the schedule, or write the summary. Model output is treated as untrusted until Pydantic and scenario-aware guardrails validate its count, order, type, adjustment shape, hours, values, and `applies` semantics.
+OpenRouter is used only to convert each natural-language operator note into a structured directive. The application validates the model output before using it. PuLP with CBC performs the optimization, and a separate validator replays the final schedule, battery state, energy balance, directive constraints, and totals.
 
-The optimizer uses a signed battery-flow variable: positive means charging and negative means discharging. This represents exactly one public battery action per hour without simultaneous charging and discharging. Solar may be curtailed; grid export and battery losses are not modeled because the organizer specification does not define them. Final battery energy equals initial energy.
+Provider and models:
 
-## Requirements
-
-- Python 3.12
-- OpenRouter API key with funded credits
-- An OpenRouter model supporting strict structured outputs
-- CBC (the PuLP wheel includes CBC on supported platforms; Docker installs it explicitly)
-
-Core dependencies are FastAPI, Pydantic, pydantic-settings, HTTPX, PuLP, Uvicorn, pytest, and pytest-asyncio.
+- OpenRouter
+- Primary: `deepseek/deepseek-v4-flash-0731`
+- Malformed-output fallback: `openai/gpt-5-nano`
 
 ## Local setup
 
+Requirements: Python 3.12 and an OpenRouter API key with available quota.
+
 ```bash
+git clone https://github.com/tanvir-gellar-DU/BUP_Preli.git
+cd BUP_Preli
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-dev.txt
 cp .env.example .env
 ```
 
-Set these values in `.env`:
+Configure `.env`:
 
 ```env
 OPENROUTER_API_KEY=sk-or-v1-...
-OPENROUTER_API_KEYS='["sk-or-v1-...","sk-or-v1-..."]'
+OPENROUTER_API_KEYS=[]
 OPENROUTER_MODEL=deepseek/deepseek-v4-flash-0731
 OPENROUTER_FALLBACK_MODEL=openai/gpt-5-nano
 OPENROUTER_TIMEOUT_SECONDS=15
 ```
 
-Configure either `OPENROUTER_API_KEY` or the optional JSON `OPENROUTER_API_KEYS` pool. With a pool, requests start round-robin and move to the next key immediately only after HTTP 429; each key is attempted at most once. Keep all keys secret and use them only in accordance with the provider's account and rate-limit policies.
-
-DeepSeek V4 Flash is the primary interpreter. If and only if it returns empty, invalid JSON, schema-invalid, or guardrail-invalid structured output, the interpreter makes one bounded retry with GPT-5 Nano. Authentication, quota, timeout, rate-limit exhaustion, and provider HTTP failures remain controlled errors and do not trigger model fallback.
-
-Never commit `.env` or put credentials in source, Docker images, `vercel.json`, logs, or API responses.
-
-Start locally:
+Use either `OPENROUTER_API_KEY` or a JSON array in `OPENROUTER_API_KEYS`. Start the service:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
+
+## API
 
 Health check:
 
@@ -67,75 +68,75 @@ Expected response:
 {"status":"ok"}
 ```
 
-## Optimization request
-
-Send any `input` object from `BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json`:
+Run public Sample 1 against the optimization endpoint:
 
 ```bash
 jq '.cases[0].input' BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json \
   | curl --fail --json @- http://localhost:8000/optimize-energy
 ```
 
-The response contains the echoed `scenario_id`, one ordered `directive_interpretation` per note, 24 ordered `hourly_plan` entries, recalculated grid energy/cost/peak, and a deterministic summary.
+The response must contain the same `scenario_id`, one `directive_interpretation` per note, 24 `hourly_plan` entries, and recalculated totals. For Sample 1, the optimal aggregates are:
 
-## Tests and public validation
+```json
+{
+  "total_grid_kwh": 2692.5,
+  "total_cost_bdt": 38365,
+  "peak_grid_kwh": 175
+}
+```
 
-Normal tests mock OpenRouter and consume no quota:
+## Tests
+
+Tests mock OpenRouter and do not consume API quota.
 
 ```bash
 pytest -q
 pytest tests/test_public_cases.py -q
 ```
 
-The public-case suite validates all ten reference interpretations through directive application, optimization, independent replay, neutrality, and aggregate comparison. Equivalent optimal schedules are accepted by comparing cost rather than action sequence.
-
-Optional paid real-model interpretation evaluation:
-
-```bash
-python -m scripts.evaluate_llm
-python -m scripts.evaluate_llm --limit 1
-python -m scripts.evaluate_paraphrases
-```
-
-The internal paraphrase corpus contains 18 notes covering every supported directive and `no_op`, including 12/24-hour clocks, fractions, percentages, and alternate operational wording. Its evaluator reports relevance, directive type, hours, numeric extraction, adjustment shape, and exact-note accuracy.
+The full suite contains 90 tests, including all ten organizer public cases.
 
 ## Docker fallback
 
-Build and run locally:
+The public image supports `linux/amd64` and `linux/arm64`.
+
+```bash
+docker pull ghcr.io/tanvir-gellar-du/bup_preli:latest
+docker run --rm -d --name gridwise --env-file .env -p 8000:8000 \
+  ghcr.io/tanvir-gellar-du/bup_preli:latest
+curl --fail http://localhost:8000/health
+docker stop gridwise
+```
+
+Immutable image reference:
+
+```text
+ghcr.io/tanvir-gellar-du/bup_preli@sha256:7d9f9014d15da98ae8864d5b4bdd40a1ad1a4e1ec6444e8127cd3d0fea477c46
+```
+
+Build the same service locally if needed:
 
 ```bash
 docker build -t gridwise:local .
-docker run --rm -p 8000:8000 \
-  -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
-  -e OPENROUTER_MODEL="deepseek/deepseek-v4-flash-0731" \
-  -e OPENROUTER_TIMEOUT_SECONDS=15 \
-  gridwise:local
+docker run --rm --env-file .env -p 8000:8000 gridwise:local
 ```
 
-Verify `http://localhost:8000/health`. Replace `gridwise:local` with the final submitted registry tag or digest after publishing; no public image has been claimed yet.
+## Deployment
 
-## Vercel
+Vercel runs the same FastAPI application through `api/index.py`. Configure the environment variables listed above in Vercel, then deploy with `vercel deploy --prod`. The submitted public base URL is:
 
-Production base URL: `https://gridwise-llm.vercel.app`
+```text
+https://gridwise-llm.vercel.app
+```
 
-Vercel's native FastAPI adapter deploys the same application used locally and in Docker. The production project stores `OPENROUTER_API_KEY` or `OPENROUTER_API_KEYS`, plus `OPENROUTER_MODEL` and `OPENROUTER_TIMEOUT_SECONDS`, as encrypted environment variables. On September 18, 2026, external checks returned HTTP 200 from both `/health` and `/optimize-energy`; the latter returned a complete 24-hour schedule for public Sample 1.
+## Dependencies and limitations
 
-To deploy a separately owned copy, link the repository with Vercel, configure those three production variables, and run `vercel deploy --prod` from the repository root.
+Runtime dependencies are declared in `requirements.txt`; test dependencies are in `requirements-dev.txt`. The main libraries are FastAPI, Pydantic, HTTPX, PuLP, CBC, and Uvicorn.
 
-## Failure behavior
-
-- Malformed or structurally invalid requests: controlled HTTP 400.
-- Well-formed but infeasible scenarios: controlled HTTP 422.
-- Missing credentials, authentication, quota, rate limits, provider failures, timeouts, malformed model output, or rejected candidate schedules: controlled HTTP 500 without secrets or stack traces.
-- Provider calls use one request for all notes, strict JSON Schema, a 1,200-token output cap, minimal reasoning, a 15-second configured timeout, and at most one retry for transient failures.
-
-## Known limitations
-
-- A hosted OpenRouter dependency requires valid credentials, funded quota, model availability, and network access during judging.
-- The organizer does not define how overlapping directives of the same type compose. This implementation applies the most restrictive value: lowest solar factor/grid cap and highest reserve.
-- Unknown request fields are rejected to protect the exact contract.
-- The Docker image has been built and exercised locally, but publication to a public registry remains required before submission.
+- Optimization requests require OpenRouter network access, valid credentials, model availability, and sufficient quota.
+- Latency depends on OpenRouter and the selected model.
+- Unknown request fields are rejected to preserve the exact API contract.
 
 ## Security
 
-Only synthetic challenge data is processed. Authorization headers and secret values are never logged or returned. Use a dedicated, spending-limited OpenRouter key and rotate or revoke it after evaluation.
+Never commit `.env`, API keys, tokens, or credentials. Secrets are provided only through runtime environment variables and are not included in the Docker image or API responses.
