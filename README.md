@@ -128,6 +128,3 @@ All runtime and test dependencies are declared in `requirements.txt`. The main l
 - Latency depends on OpenRouter and the selected model.
 - Unknown request fields are rejected to preserve the exact API contract.
 
-## Security
-
-Never commit `.env`, API keys, tokens, or credentials. Secrets are provided only through runtime environment variables and are not included in the Docker image or API responses.
