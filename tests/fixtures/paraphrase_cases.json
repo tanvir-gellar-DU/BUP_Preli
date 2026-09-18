@@ -1,0 +1,82 @@
+{
+  "cases": [
+    {
+      "id": "PARA-SOLAR",
+      "operator_notes": [
+        "Between 13:00 and 15:00, rooftop PV will deliver only one-fifth of its forecast output.",
+        "Panel work from one in the afternoon until three will make four-fifths of the solar generation unavailable.",
+        "Limit usable solar to 35 percent from 9 AM until noon."
+      ],
+      "expected": [
+        {"note_index": 0, "applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [13, 14], "factor": 0.2}},
+        {"note_index": 1, "applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [13, 14], "factor": 0.2}},
+        {"note_index": 2, "applies": true, "directive_type": "solar_reduction", "structured_adjustment": {"hours": [9, 10, 11], "factor": 0.35}}
+      ]
+    },
+    {
+      "id": "PARA-RESERVE",
+      "operator_notes": [
+        "Maintain at least half of the battery's capacity from 18:00 until 22:00 for backup coverage.",
+        "The battery reserve floor is 75 kWh between 6 PM and 9 PM.",
+        "Retain no less than one quarter of full battery capacity from 2 PM until 4 PM."
+      ],
+      "expected": [
+        {"note_index": 0, "applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20, 21], "minimum_energy_kwh": 110}},
+        {"note_index": 1, "applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [18, 19, 20], "minimum_energy_kwh": 75}},
+        {"note_index": 2, "applies": true, "directive_type": "minimum_battery_reserve", "structured_adjustment": {"hours": [14, 15], "minimum_energy_kwh": 55}}
+      ]
+    },
+    {
+      "id": "PARA-NO-CHARGE",
+      "operator_notes": [
+        "Charging equipment is unavailable from 2 PM to 4 PM.",
+        "Do not put energy into the battery between 00:00 and 03:00.",
+        "The charger will be isolated from one in the afternoon until three."
+      ],
+      "expected": [
+        {"note_index": 0, "applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [14, 15]}},
+        {"note_index": 1, "applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [0, 1, 2]}},
+        {"note_index": 2, "applies": true, "directive_type": "no_charge_window", "structured_adjustment": {"hours": [13, 14]}}
+      ]
+    },
+    {
+      "id": "PARA-NO-DISCHARGE",
+      "operator_notes": [
+        "The battery must not release energy from 7 PM until 10 PM.",
+        "Its discharge inverter is offline between 05:00 and 07:00.",
+        "Do not let the battery supply campus loads from noon to 2 PM."
+      ],
+      "expected": [
+        {"note_index": 0, "applies": true, "directive_type": "no_discharge_window", "structured_adjustment": {"hours": [19, 20, 21]}},
+        {"note_index": 1, "applies": true, "directive_type": "no_discharge_window", "structured_adjustment": {"hours": [5, 6]}},
+        {"note_index": 2, "applies": true, "directive_type": "no_discharge_window", "structured_adjustment": {"hours": [12, 13]}}
+      ]
+    },
+    {
+      "id": "PARA-GRID-CAP",
+      "operator_notes": [
+        "Grid imports have a ceiling of 140 kWh per hour from 18:00 until 21:00.",
+        "Do not draw more than 95 kWh from the utility between 9 AM and noon.",
+        "The grid connection is limited to 120 kWh each hour from one PM until three PM."
+      ],
+      "expected": [
+        {"note_index": 0, "applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [18, 19, 20], "max_grid_kwh": 140}},
+        {"note_index": 1, "applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [9, 10, 11], "max_grid_kwh": 95}},
+        {"note_index": 2, "applies": true, "directive_type": "max_grid_window", "structured_adjustment": {"hours": [13, 14], "max_grid_kwh": 120}}
+      ]
+    },
+    {
+      "id": "PARA-NO-OP",
+      "operator_notes": [
+        "The inter-department football fixture has moved to next Saturday.",
+        "A new library newsletter will be published next month.",
+        "The registrar changed the graduation gown collection desk."
+      ],
+      "expected": [
+        {"note_index": 0, "applies": false, "directive_type": "no_op", "structured_adjustment": null},
+        {"note_index": 1, "applies": false, "directive_type": "no_op", "structured_adjustment": null},
+        {"note_index": 2, "applies": false, "directive_type": "no_op", "structured_adjustment": null}
+      ]
+    }
+  ]
+}
