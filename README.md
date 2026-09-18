@@ -34,7 +34,7 @@ git clone https://github.com/tanvir-gellar-DU/BUP_Preli.git
 cd BUP_Preli
 python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
+python -m pip install -r requirements.txt
 cp .env.example .env
 ```
 
@@ -131,7 +131,7 @@ https://gridwise-llm.vercel.app
 
 ## Dependencies and limitations
 
-Runtime dependencies are declared in `requirements.txt`; test dependencies are in `requirements-dev.txt`. The main libraries are FastAPI, Pydantic, HTTPX, PuLP, CBC, and Uvicorn.
+All runtime and test dependencies are declared in `requirements.txt`. The main libraries are FastAPI, Pydantic, HTTPX, PuLP, CBC, Uvicorn, and pytest.
 
 - Optimization requests require OpenRouter network access, valid credentials, model availability, and sufficient quota.
 - Latency depends on OpenRouter and the selected model.
