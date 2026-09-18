@@ -131,3 +131,7 @@ All runtime and test dependencies are declared in `requirements.txt`. The main l
 - Optimization requests require OpenRouter network access, valid credentials, model availability, and sufficient quota.
 - Latency depends on OpenRouter and the selected model.
 - Unknown request fields are rejected to preserve the exact API contract.
+
+## Security
+
+Never commit `.env`, API keys, tokens, or credentials. Provide secrets only through runtime environment variables.
